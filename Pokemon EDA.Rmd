@@ -1,0 +1,411 @@
+---
+title: "Pokemon Stat EDA"
+author: "Marcellito Vido T"
+date: "6/10/2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Deskripsi Data
+
+Data set ini berisi 721 Pokemon, termasuk nomor, nama, tipe 1 dan 2, dan statistik dasar: HP, Attack, Defense, Special Attack, Special Defense, dan Speed. Data ini adalh data mentah yang akan digunakan iuntuk menghitung berapa banyak damage sebuah serangan dalam games. Dataset ini adalah tentang game *Pokemon* (Bukan *pokemon cards* atau *Pokemon Go*).
+
+
+
+> Deskripsi Kolom
+
+* **Name**: Nama setiap pokemon
+* **Type 1**: Setiap pokemon memiliki tipe, ini menentukan kelemahan/kekuatan pokemon
+* **Type 2**: Beberapa pokemon memiliki 2 tipe
+* **Total**: Jumlah dari semua statistik pokemon, dalam kasus ini bisa disebut juga Power
+* **HP**: hit points, atau nyawa, menentukan berapa banyak damage yang bisa ditahan sebelum pingsan
+* **Attack**: damage serangan normal (Cth: Scratch, Punch)
+* **Defense**: Damage rasistance terhadap serangan normal
+* **SP Atk**: special attack, Damage special attack (Cth: fire blast, bubble beam)
+* **SP Def**: Damage rasistance terhadap special attacks
+* **Speed**: Menentukan pokemon mana yang akan menyerang lebih dulu di setiap round
+* **Generation**: Pokemon dapat berevolusi, ini menentukan evolusi keberapa
+* **Legendary**: Beberapa pokemon termasuk dalam pokemon legendary
+
+> Sumber Data
+
+Data ini saya dapatkan di situs:
+<https://www.kaggle.com/abcsds/pokemon>
+
+> Permasalahan
+
+Beberapa pertanyaan yang dapat dijawab dengan dataset ini: 
+
+1. Pokemon tipe apa yang memiliki jenis paling banyak dan paling sedikit?
+2. Pokemon generasi berapa yang memiliki jenis paling banyak dan paling sedikit?
+3. Berapa HP yang dimiliki setiap pokemon?
+<br />
+Etc..
+
+> Ringkasan Data
+
+```{r message=0, echo=0}
+library(tidyverse)
+library(dplyr)
+library(ggdark)
+pokemon = read.csv('dataset/Pokemon/datasets_121_280_Pokemon.csv')
+```
+
+```{r echo=0, message=1}
+glimpse(pokemon)
+```
+
+***
+# Pre-Processing Data
+Library yang akan digunakan
+```{r echo=TRUE, message=FALSE}
+library(tidyverse)  # Import/Export Dataframe 
+library(dplyr)      # Pre-Processing Data
+library(ggplot2)    # Data Visualization
+```
+> Import Dataset 
+
+Import dataset yang akan dianalisis kedalam bentuk dataframe menggunakan fungsi *read.csv()*
+```{r echo=TRUE, message=FALSE}
+pokemon = read.csv('dataset/Pokemon/datasets_121_280_Pokemon.csv')
+glimpse(pokemon)
+```
+> Data Preparation
+
+Agar lebih mudah dipahami saya mengubah header kolom *Total* --> *Power* <br />
+dengan fungsi *rename()*
+```{r echo=TRUE, message=FALSE}
+pokemon = pokemon %>% 
+  rename(Power = Total)
+```
+Mengubah tipedata pada beberapa kolom menggunakan fungsi *as.factor()*
+```{r echo=TRUE, message=FALSE}
+pokemon$Type.1 = as.factor(pokemon$Type.1)
+pokemon$Type.2 = as.factor(pokemon$Type.2)
+pokemon$Generation = as.factor(pokemon$Generation)
+pokemon$Legendary = as.factor(pokemon$Legendary)
+
+pokemon %>%
+  select(Type.1, Type.2, Generation, Legendary)%>%
+  glimpse()
+  
+```
+***
+# Exploratory Data Analysis
+
+> VARIATION: Categorical Variable <br />
+**Pokemon tipe apa yang memiliki jenis paling banyak dan paling sedikit?**
+
+```{r echo=1, message=1}
+TypePlot = ggplot(pokemon)+
+  geom_bar(mapping = aes(Type.1), fill="steelblue")+
+  ggtitle("Jumlah Pokemon Berdasarkan Tipe")+
+  xlab('Tipe')+ylab('Jumlah')+
+  coord_flip()+
+  theme_minimal()
+TypePlot
+```
+<br />
+Untuk mengetahui frekuensi secara detail saya menggunakan fungsi *count()* dari library *plyr*
+```{r message=0, echo=1}
+TypeCount = plyr::count(pokemon, 'Type.1')
+# TypeCount
+```
+
+Interpretasi :
+
+1. Pokemon dengan tipe Air (Water) memiliki jenis paling banyak yaitu **112**
+2. Pokemon dengan tipe tebang (Flying) memuliki jenis paling sedikit yaitu **4**<br />
+Etc..
+<br />
+
+
+***
+
+
+> VARIATION: Categorical Variable <br />
+**Pokemon generasi berapa yang memiliki jenis paling banyak dan paling sedikit?**
+
+```{r echo=1, message=1}
+GenPlot = ggplot(pokemon)+
+  geom_bar(mapping = aes(Generation), fill="steelblue")+
+  ggtitle("Jumlah Pokemon Berdasarkan Generasi")+
+  xlab('Generasi')+ylab('Jumlah')+
+  scale_x_discrete(breaks=c('1', '2', '3', '4', '5', '6'), 
+                   labels = c('Gen 1', 'Gen 2', 'Gen 3', 'Gen 4', 'Gen 5', 'Gen 6'))+
+  coord_flip()+
+  theme_minimal()
+GenPlot
+```
+<br />
+Untuk mengetahui frekuensi secara detail saya menggunakan fungsi *count()* dari library *plyr*
+```{r message=0, echo=1}
+GenCount = plyr::count(pokemon, 'Generation')
+  # GenCount
+```
+
+Interpretasi :
+
+1. Pokemon dengan generasi 1 memiliki jenis yang paling banyak yaitu **166**
+2. Pokemon dengan generasi 6 memiliki jenis yang paling Sedikit yaitu **82**<br />
+Etc..
+
+<br />
+
+
+***
+
+
+> VARIATION: Continous Variable <br />
+**Bagaimana sebaran HP yang dimiliki pokemon?**
+
+```{r echo=1, message=1}
+HpPlot = ggplot(pokemon)+
+  geom_histogram(mapping = aes(x=HP, fill = Type.1), binwidth = 3)+
+  xlab('HP')+ylab('Jumlah')+
+  ggtitle("Pokemon HP")+ labs(fill = "Tipe")+
+  theme_minimal()
+
+HpPlot
+```
+<br />
+Interpretasi :
+
+1. Banyak pokemon memiliki HP dibawah 100
+2. Hanya ada 2 tipe pokemon yang memiliki HP diatas 200<br />
+Etc..
+
+
+<br />
+
+
+***
+
+
+> VARIATION: Continous Variable <br />
+**Bagaimana sebaran Attack yang dimiliki pokemon?**
+
+```{r echo=1, message=1}
+AttPlot = ggplot(pokemon)+
+  geom_histogram(mapping = aes(x=Attack, fill = Type.1), binwidth = 3)+
+  xlab('Attack')+ylab('Jumlah')+
+  ggtitle("Pokemon Attack")+ labs(fill = "Tipe")+
+  theme_minimal()
+
+AttPlot
+```
+<br />
+Interpretasi :
+
+--- Mayoritas pokemon memiliki Attack dibawah 150<br />
+Etc..
+
+
+<br />
+
+
+***
+
+
+> COVARIATION: Categorical vs Categorical <br />
+**Pokemon Legendary paling banyak pada tipe apa?**
+
+```{r echo=1, message=1}
+LegendPlot = pokemon %>%
+  filter(Legendary == "True")%>%
+  count(Type.1, Legendary) %>%
+  arrange(desc(n))%>%
+  ggplot(mapping = aes(x=Legendary, y=Type.1))+
+  geom_tile(mapping = aes(fill = n))+
+  ggtitle("Pokemon Legendary")+ labs(fill = "Freq")+
+  ylab('Tipe')+
+  theme_minimal()
+
+LegendPlot
+```
+<br />
+Untuk mengetahui data secara detail
+```{r message=0, echo=1}
+LegendCount = pokemon %>%
+  filter(Legendary == "True")%>%
+  count(Type.1, Legendary) %>%
+  arrange(desc(n))
+  # LegendCount
+```
+
+Interpretasi :
+
+--- Pokemon Legendary paling banyak bertipe Psychic dan Dragon yaitu **14**<br />
+Etc..
+
+<br />
+
+
+***
+
+
+> COVARIATION: Categorical vs Categorical <br />
+**Pokemon generasi 1-6 banyak bertipe apa?**
+
+```{r echo=1, message=1}
+GenComPlot = pokemon %>%
+  count(Type.1, Generation) %>%
+  arrange(desc(n))%>%
+  ggplot(mapping = aes(x=Generation, y=Type.1))+
+  geom_tile(mapping = aes(fill = n))+
+  ggtitle("Komposisi Generation Setiap Tipe")+ labs(fill = "Freq")+
+  ylab('Tipe')+
+  scale_fill_viridis_c()+
+  theme_minimal()
+
+GenComPlot
+```
+<br />
+Untuk mengetahui data secara detail
+```{r message=0, echo=1}
+GenComposition = pokemon %>%
+  count(Type.1, Generation) %>%
+  arrange(Type.1)
+  # GenComposition
+```
+
+Interpretasi :
+
+1. Pokemon generasi 1 banyak bertipe Water
+2. Pokemon generasi 2 banyak bertipe Water dan Normal
+3. Pokemon generasi 3 banyak bertipe Water
+4. Pokemon generasi 4 banyak bertipe Normal
+5. Pokemon generasi 5 banyak bertipe Normal dan Bug
+6. Pokemon generasi 6 banyak bertipe Ghost
+<br />
+Etc..
+<br />
+
+
+***
+
+
+> COVARIATION: Continous vs Continous <br />
+**Apakah semakin tinggi Attack, semakin tinggi juga Special Attack?**
+
+```{r echo=1, message=1}
+AttRelPlot = ggplot(pokemon, aes(Attack, Sp..Atk))+
+  geom_point() + 
+  scale_x_continuous(breaks = seq(0,200,20))+
+  scale_y_continuous(breaks = seq(0,200,20))+
+  ggtitle('Hubungan Antara Attack dan Special Attack')+
+  theme_minimal()
+AttRelPlot
+```
+<br />
+Menghitung korelasi antara variabel Attack dan Sp..Atk, saya menggunakan method *Pearson*
+```{r message=0, echo=1}
+r_att = cor.test(pokemon$Attack, pokemon$Sp..Atk, 
+             method = "pearson")
+
+  # r_att
+```
+
+Interpretasi :
+
+--- Variabel Attack dan Sp..Atk memiliki relasi positif sedang (Moderate Positive Relationship) **+0.3963618**
+<br />
+Etc..
+<br />
+
+
+***
+
+
+> COVARIATION: Continous vs Continous <br />
+**Apakah semakin tinggi Defense, semakin tinggi juga Special Deffense?**
+
+```{r echo=1, message=1}
+DefRelPlot = ggplot(pokemon, aes(Defense, Sp..Def))+
+  geom_point() + 
+  ggtitle('Hubungan Antara Defense dan Special Defense')+
+  scale_x_continuous(breaks = seq(0,240,20))+
+  scale_y_continuous(breaks = seq(0,240,20))+
+  theme_minimal()
+DefRelPlot
+```
+<br />
+Menghitung korelasi antara variabel Attack dan Sp..Atk, saya menggunakan method *Pearson*
+```{r message=0, echo=1}
+r_def = cor.test(pokemon$Defense, pokemon$Sp..Def, 
+         method = "pearson")
+
+  # r_def
+```
+
+Interpretasi :
+
+--- Variabel Defense dan Sp..Def memiliki relasi positif sedang (Moderate Positive Relationship) **+0.5107466**
+<br />
+Etc..
+<br />
+
+
+***
+
+
+> COVARIATION: Categorical vs Continous <br />
+**Bagaimana distribusi dari Power setiap tipe pokemon?**
+
+```{r echo=1, message=1}
+DisType = ggplot(pokemon) +
+  geom_boxplot(mapping = aes(x=Type.1, y=Power))+
+  scale_y_continuous(breaks = seq(0,800,100))+
+  ggtitle('Distribusi Power Setiap Tipe Pokemon')+
+  xlab('Type')+
+  theme_minimal()
+
+DisType
+```
+<br />
+Interpretasi :
+
+--- Distribusi pokemon bertipe Bug cenderung rendah dibandingkan pokemon Tipe lainnya. Median Power dari Pokemon Tipe Bug adalah **395**, dengan IQR Power sekitar **205**, yang berarti sekitar 50% Pokemon Tipe Bug memiliki power antara **270 - 475**
+<br />
+Etc..
+<br />
+
+
+***
+
+
+> COVARIATION: Categorical vs Continous <br />
+**Bagaimana distribusi dari Power pada pokemon Legendary?**
+
+```{r echo=1, message=1}
+DisLegend = ggplot(pokemon) +
+  geom_boxplot(mapping = aes(x=Legendary, y=Power))+
+  scale_y_continuous(breaks = seq(0,800,100))+
+  ggtitle('Distribusi Power Pada Pokemon Legendary')+
+  xlab('Legendary')+
+  theme_minimal()
+
+DisLegend
+```
+<br />
+Interpretasi :
+
+--- Distribusi pokemon legendary cenderung lebih tinggi dibandingkan pokemon non legendary. Median Power dari Legendary Pokemon adalah **600**, dengan IQR Power sekitar **105**, yang berarti sekitar 50% Legendary pokemon memiliki power antara **575 - 685**
+<br />
+Etc..
+<br />
+
+***
+
+<br />
+<br />
+<br />
+<br />
+<br />
